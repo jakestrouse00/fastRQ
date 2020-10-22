@@ -1,5 +1,6 @@
 import requests
 import queue
+import time
 from fake_useragent import UserAgent
 import threading
 
@@ -10,19 +11,26 @@ class Queue:
         self.threadedCallback = threadedCallback
         self.callbackFunc = callback
         self.queue = queue.Queue()
-        threading.Thread(target=self.watchQueue, daemon=True).start()
+        threading.Thread(target=self.watchQueue).start()
 
     def watchQueue(self):
         while True:
             if not self.queue.empty:
+                print(55)
                 item = self.queue.get()
                 if self.threadedCallback:
                     threading.Thread(target=self.callbackFunc, args=(item,)).start()
                 else:
                     self.callbackFunc(item)
+            else:
+                if self.timeout is not None:
+                    time.sleep(self.timeout)
 
     def getQueue(self):
         return list(self.queue.queue)
+
+    def put(self, item):
+        self.queue.put(item)
 
 
 class Request():

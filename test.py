@@ -1,15 +1,16 @@
-from fastRQ import Session
+from fastRQ import Session, Queue
 import threading
-
 
 # sess = Session()
 # r = sess.get('https://google.com')
 # print(r.info)
 
-def o(j):
-    print(1)
-    print(j)
-def x(thing):
-    thing(2)
+def x(payload):
+    print(payload)
 
-x(o)
+q1 = Queue(callback=x)
+
+for i in range(5):
+    q1.put(i)
+
+print(q1.getQueue())
