@@ -1,20 +1,45 @@
 import requests
 import queue
 from fake_useragent import UserAgent
+import threading
+
+
+class Queue:
+    def __init__(self, callback, timeout=None, threadedCallback=False):
+        self.timeout = timeout
+        self.threadedCallback = threadedCallback
+        self.callbackFunc = callback
+        self.queue = queue.Queue()
+        threading.Thread(target=self.watchQueue, daemon=True).start()
+
+    def watchQueue(self):
+        while True:
+            if not self.queue.empty:
+                item = self.queue.get()
+                if self.threadedCallback:
+                    threading.Thread(target=self.callbackFunc, args=(item,)).start()
+                else:
+                    self.callbackFunc(item)
+
+    def getQueue(self):
+        return list(self.queue.queue)
 
 
 class Request():
     def __init__(self, session):
         self.sess = session.session
         self.session = session
+
     """
     
     Need to add ability to use proxies
     """
+
     def get(self, link, headers=None):
         if self.session.proxy_setting is not None:
             if self.session.proxy_setting['proxy_type'] == 'socks5':
-                proxy = dict(http=f"socks5://{self.session.proxy_setting['proxy_type']}", https=f"socks5://{self.session.proxy_setting['proxy_type']}")
+                proxy = dict(http=f"socks5://{self.session.proxy_setting['proxy_type']}",
+                             https=f"socks5://{self.session.proxy_setting['proxy_type']}")
             elif self.session.proxy_setting['proxy_type'] == 'https':
                 proxy = dict(http=f"http://{self.session.proxy_setting['proxy_type']}",
                              https=f"https://{self.session.proxy_setting['proxy_type']}")
@@ -30,7 +55,8 @@ class Request():
         # {"type": "json/data", "payload": {"key1": "val1", "key2", "val2"}}
         if self.session.proxy_setting is not None:
             if self.session.proxy_setting['proxy_type'] == 'socks5':
-                proxy = dict(http=f"socks5://{self.session.proxy_setting['proxy_type']}", https=f"socks5://{self.session.proxy_setting['proxy_type']}")
+                proxy = dict(http=f"socks5://{self.session.proxy_setting['proxy_type']}",
+                             https=f"socks5://{self.session.proxy_setting['proxy_type']}")
             elif self.session.proxy_setting['proxy_type'] == 'https':
                 proxy = dict(http=f"http://{self.session.proxy_setting['proxy_type']}",
                              https=f"https://{self.session.proxy_setting['proxy_type']}")
@@ -92,7 +118,7 @@ class Response:
 
 
 class Session:
-    def __init__(self, proxy_settings=None, user_agent="random", cookies=None):
+    def __init__(self, proxy_settings=None, user_agent="default", cookies=None):
         # proxy_settings format:
         # {"proxy": "username:password@ip:port", "proxy_type": "socks5/https"}
         # cookies format:
@@ -102,6 +128,8 @@ class Session:
         if user_agent == "random":
             ua = UserAgent()
             self.user_agent = ua.random
+        elif user_agent == 'default':
+            self.user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.80 Safari/537.36"
         else:
             self.user_agent = user_agent
         if cookies is not None:

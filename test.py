@@ -1,16 +1,15 @@
-class M:
-    def __init__(self):
-        self.j = 0
+from fastRQ import Session
+import threading
 
 
-class O:
-    def __init__(self, obj):
-        self.obj = obj
+# sess = Session()
+# r = sess.get('https://google.com')
+# print(r.info)
 
-    def mutate(self):
-        self.obj.j = 5
+def o(j):
+    print(1)
+    print(j)
+def x(thing):
+    thing(2)
 
-r = M()
-p = O(r)
-p.mutate()
-print(r.j)
+x(o)
