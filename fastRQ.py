@@ -7,6 +7,9 @@ import threading
 
 class Queue:
     def __init__(self, callback, timeout=None, threadedCallback=False):
+        """
+        Currently does not work because for the life of me I cannot figure out how to pass a callback function.
+        """
         self.timeout = timeout
         self.threadedCallback = threadedCallback
         self.callbackFunc = callback
@@ -37,11 +40,6 @@ class Request():
     def __init__(self, session):
         self.sess = session.session
         self.session = session
-
-    """
-    
-    Need to add ability to use proxies
-    """
 
     def get(self, link, headers=None):
         if self.session.proxy_setting is not None:
