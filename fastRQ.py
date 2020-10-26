@@ -5,32 +5,55 @@ import time
 from fake_useragent import UserAgent
 import threading
 
+class Session:
+    def __init__(self, proxy_settings=None, user_agent="default", cookies=None):
+        # proxy_settings format:
+        # {"proxy": "username:password@ip:port", "proxy_type": "socks5/https"}
+        # cookies format:
+        # {"key1": "val1", "key2": "val2"}
+        self.session = requests.Session()
+        self.proxy_setting = proxy_settings
+        if user_agent == "random":
+            ua = UserAgent()
+            self.user_agent = ua.random
+        elif user_agent == 'default':
+            self.user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.80 Safari/537.36"
+        else:
+            self.user_agent = user_agent
+        if cookies is not None:
+            self.session.cookies.update(cookies)
 
-class Queue:
-    def __init__(self, callback, timeout=0, threaded_callback=False):
-        self._timeout = timeout
-        self._threadedCallback = threaded_callback
-        self._callback = callback
-        self._queue = queue.Queue()
+        self.session.headers.update({"user-agent": self.user_agent})
 
-    def wait_for(self):
-        while True:
-            while self._queue.empty():
-                time.sleep(self._timeout)
-            var = self._queue.get()
-            if self._threadedCallback:
-                threading.Thread(target=self._callback, args=(var,)).start()
-            else:
-                self._callback(var)
-    
-    def put(self, item):
-        self._queue.put(item)
+    def get(self, link, headers=None):
+        resp = Request(self).get(link, headers=headers)
+        return Response(resp)
 
-    def start(self):
-        threading.Thread(target=self.wait_for).start()
+    def post(self, link, payload, headers=None):
+        resp = Request(self).post(link, headers=headers, payload=payload)
+        return Response(resp)
 
-    def get_queue(self):
-        return list(self._queue.queue)
+    def delete(self, link, headers=None):
+        resp = Request(self).delete(link, headers=headers)
+        return Response(resp)
+
+    def put(self, link, payload, headers=None):
+        resp = Request(self).post(link, headers=headers, payload=payload)
+        return Response(resp)
+
+
+class Response:
+    def __init__(self, resp_request):
+        self.headers = resp_request.headers
+        self.cookies = resp_request.cookies
+        self.content = resp_request.content
+        self.text = resp_request.text
+        try:
+            self.json = resp_request.json()
+        except:
+            self.json = None
+        self.info = {"status_code": resp_request.status_code, "reason": resp_request.reason}
+
 
 class Request:
     def __init__(self, session):
@@ -105,52 +128,37 @@ class Request:
             raise Exception("Payload type is invalid")
         return r
 
+class Queue:
+    def __init__(self, callback, timeout=0, threaded_callback=False):
+        self._timeout = timeout
+        self._threadedCallback = threaded_callback
+        self._callback = callback
+        self._queue = queue.Queue()
 
-class Response:
-    def __init__(self, resp_request):
-        self.headers = resp_request.headers
-        self.cookies = resp_request.cookies
-        self.content = resp_request.content
-        self.text = resp_request.text
-        try:
-            self.json = resp_request.json()
-        except:
-            self.json = None
-        self.info = {"status_code": resp_request.status_code, "reason": resp_request.reason}
+    def wait_for(self):
+        while True:
+            while self._queue.empty():
+                time.sleep(self._timeout)
+            var = self._queue.get()
+            if self._threadedCallback:
+                threading.Thread(target=self._callback, args=(var,)).start()
+            else:
+                self._callback(var)
+
+    def put(self, item):
+        self._queue.put(item)
+
+    def start(self):
+        threading.Thread(target=self.wait_for).start()
+
+    def get_queue(self):
+        return list(self._queue.queue)
 
 
-class Session:
-    def __init__(self, proxy_settings=None, user_agent="default", cookies=None):
-        # proxy_settings format:
-        # {"proxy": "username:password@ip:port", "proxy_type": "socks5/https"}
-        # cookies format:
-        # {"key1": "val1", "key2": "val2"}
-        self.session = requests.Session()
-        self.proxy_setting = proxy_settings
-        if user_agent == "random":
-            ua = UserAgent()
-            self.user_agent = ua.random
-        elif user_agent == 'default':
-            self.user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.80 Safari/537.36"
-        else:
-            self.user_agent = user_agent
-        if cookies is not None:
-            self.session.cookies.update(cookies)
 
-        self.session.headers.update({"user-agent": self.user_agent})
 
-    def get(self, link, headers=None):
-        resp = Request(self).get(link, headers=headers)
-        return Response(resp)
 
-    def post(self, link, payload, headers=None):
-        resp = Request(self).post(link, headers=headers, payload=payload)
-        return Response(resp)
 
-    def delete(self, link, headers=None):
-        resp = Request(self).delete(link, headers=headers)
-        return Response(resp)
 
-    def put(self, link, payload, headers=None):
-        resp = Request(self).post(link, headers=headers, payload=payload)
-        return Response(resp)
+
+
