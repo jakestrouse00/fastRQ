@@ -1,42 +1,38 @@
 import requests
 import queue
+import asyncio
 import time
 from fake_useragent import UserAgent
 import threading
 
 
 class Queue:
-    def __init__(self, callback, timeout=None, threadedCallback=False):
-        """
-        Currently does not work because for the life of me I cannot figure out how to pass a callback function.
-        """
-        self.timeout = timeout
-        self.threadedCallback = threadedCallback
-        self.callbackFunc = callback
-        self.queue = queue.Queue()
-        threading.Thread(target=self.watchQueue).start()
+    def __init__(self, callback, timeout=0, threaded_callback=False):
+        self._timeout = timeout
+        self._threadedCallback = threaded_callback
+        self._callback = callback
+        self._queue = queue.Queue()
 
-    def watchQueue(self):
+    def wait_for(self):
         while True:
-            if not self.queue.empty:
-                print(55)
-                item = self.queue.get()
-                if self.threadedCallback:
-                    threading.Thread(target=self.callbackFunc, args=(item,)).start()
-                else:
-                    self.callbackFunc(item)
+            while self._queue.empty():
+                time.sleep(self._timeout)
+            var = self._queue.get()
+            if self._threadedCallback:
+                threading.Thread(target=self._callback, args=(var,)).start()
             else:
-                if self.timeout is not None:
-                    time.sleep(self.timeout)
-
-    def getQueue(self):
-        return list(self.queue.queue)
-
+                self._callback(var)
+    
     def put(self, item):
-        self.queue.put(item)
+        self._queue.put(item)
 
+    def start(self):
+        threading.Thread(target=self.wait_for).start()
 
-class Request():
+    def get_queue(self):
+        return list(self._queue.queue)
+
+class Request:
     def __init__(self, session):
         self.sess = session.session
         self.session = session

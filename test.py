@@ -1,16 +1,23 @@
 from fastRQ import Session, Queue
 import threading
 
+import asyncio
+
+
 # sess = Session()
 # r = sess.get('https://google.com')
 # print(r.info)
 
-def x(payload):
-    print(payload)
 
-q1 = Queue(callback=x)
+def pp(var):
+    print(var)
+x = Queue(callback=pp, timeout=0)
+# x.start()
+x.put("10m")
 
 for i in range(5):
-    q1.put(i)
+    jj = input("?? ")
+    x.put(jj)
 
-print(q1.getQueue())
+print(x.get_queue())
+x.start()
